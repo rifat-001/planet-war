@@ -1,185 +1,69 @@
-const canvas = document.querySelector('canvas');
-canvas.width = 500;
-canvas.height = 500;
-const ctx = canvas.getContext('2d');
+window.addEventListener('load', () => {
+	// canvas setup
+	const canvas = document.getElementById('canvas');
+	canvas.height = 400;
+	canvas.width = (500 * 16) / 10; // 16 : 10 aspect ratio
 
-const explosion = document.getElementById('explosion');
-const hiveWhale = document.getElementById('hive-whale');
-const octopusAttack = document.getElementById('octopus-attack');
-const octopusHurt = document.getElementById('octopus-hurt');
-const whaleDeath = document.getElementById('whale-death');
-const whaleAttack = document.getElementById('whale-attack');
-const whaleIdle = document.getElementById('whale-idle');
-const whaleWalk = document.getElementById('whale-walk');
-const whaleHurt = document.getElementById('whale-hurt');
+	// get 2d context
+	const ctx = canvas.getContext('2d');
 
-console.log('playground');
-function drawFire(ctx, frame) {
-	const fireImage = document.getElementById('fire-explosion');
+	class InputHandler {}
 
-	const maxFrame = 8;
-	const spriteWidth = 200;
-	const spriteHeight = 200;
-	const canvasX = 20;
-	const canvasY = 20;
-	const scale = 0.5;
-	const visibleWidth = spriteWidth * scale;
-	const visibleHeight = spriteHeight * scale;
+	class Projectile {}
 
-	const frameX = frame % maxFrame;
-	const frameY = 0;
-	ctx.drawImage(
-		fireImage,
-		spriteWidth * frameX, // sprite X position
-		spriteHeight * frameY, // sprite Y position
-		spriteWidth,
-		spriteHeight,
-		canvasX,
-		canvasY,
-		visibleWidth,
-		visibleHeight
-	);
-	frame++;
-	return frame % maxFrame;
-}
+	class Particle {}
 
-function drawExplosion(ctx, image, frame) {
-	const explosion = image;
+	class Player {
+		constructor(game) {
+			this.game = game;
+			this.width = 120;
+			this.height = 190;
+			this.x = 20;
+			this.y = 100;
+			this.speedY = 0.1;
+		}
 
-	const maxFrame = 9;
-	let spriteWidth = 460;
-	let spriteHeight = 305;
-	let canvasX = 20;
-	let canvasY = 20;
-	let scale = 1;
-	let visibleWidth = spriteWidth * scale;
-	let visibleHeight = spriteHeight * scale;
+		update() {
+			this.y += this.speedY;
+		}
 
-	let row = 3;
-	let col = 3;
-	let frameX = frame % col;
-	let frameY = parseInt(frame / row);
-	// console.log(frameX, frameY);
+		draw(context) {
+			context.fillRect(this.x, this.y, this.width, this.height);
+		}
+	}
 
-	ctx.drawImage(
-		explosion,
-		spriteWidth * frameX, // sprite X position
-		spriteHeight * frameY, // sprite Y position
-		spriteWidth,
-		spriteHeight,
-		canvasX,
-		canvasY,
-		visibleWidth,
-		visibleHeight
-	);
-	frame++;
-	// console.log(frame);
-	return frame % maxFrame;
-}
+	class Enemy {}
 
-function buildSprite(data, frame) {
-	const image = data.image;
-	const ctx = data.ctx;
-	const spriteWidth = data.spriteWidth;
-	const spriteHeight = data.spriteHeight;
-	const canvasX = data.canvasX;
-	const canvasY = data.canvasY;
-	const scale = data.scale;
-	const rowCount = data.rowCount;
-	const colCount = data.colCount;
+	class Layer {}
 
-	const visibleWidth = spriteWidth * scale;
-	const visibleHeight = spriteHeight * scale;
-	const maxFrame = rowCount * colCount;
+	class Background {}
 
-	// parsing matrix representation of sprite frame from linear frame value
-	const frameX = frame % colCount;
-	const frameY = parseInt(frame / colCount);
-	console.log(frameX, frameY);
+	class UI {}
 
-	console.log(spriteWidth * frameX, spriteHeight * frameY);
-	ctx.drawImage(
-		image,
-		spriteWidth * frameX, // sprite X position
-		spriteHeight * frameY, // sprite Y position
-		spriteWidth,
-		spriteHeight,
-		canvasX,
-		canvasY,
-		visibleWidth,
-		visibleHeight
-	);
-	frame++;
-	return frame % maxFrame;
-}
+	class Game {
+		constructor(width, height) {
+			this.width = width;
+			this.height = height;
+			this.player = new Player(this);
+		}
 
-const hiveWhaleData = {
-	image: hiveWhale,
-	ctx,
-	spriteWidth: 400,
-	spriteHeight: 227,
-	rowCount: 1,
-	colCount: 39,
-	scale: 1,
-	canvasX: 50,
-	canvasY: 50,
-};
+		update() {
+			this.player.update();
+		}
 
-const octopusAttackData = {
-	image: octopusAttack,
-	ctx,
-	spriteWidth: 48,
-	spriteHeight: 48,
-	rowCount: 1,
-	colCount: 6,
-	scale: 3,
-	canvasX: 50,
-	canvasY: 50,
-};
+		draw(context) {
+			this.player.draw(context);
+		}
+	}
 
-const octopusHurtData = {
-	image: octopusHurt,
-	ctx,
-	spriteWidth: 48,
-	spriteHeight: 48,
-	rowCount: 1,
-	colCount: 2,
-	scale: 3,
-	canvasX: 200,
-	canvasY: 50,
-};
+	const game = new Game(canvas.width, canvas.height);
 
-const whaleDeathData = {
-	image: whaleDeath,
-	ctx,
-	spriteWidth: 48,
-	spriteHeight: 48,
-	rowCount: 1,
-	colCount: 6,
-	scale: 3,
-	canvasX: 200,
-	canvasY: 50,
-};
-
-const whaleHurtData = {
-	image: whaleHurt,
-	ctx,
-	spriteWidth: 48,
-	spriteHeight: 48,
-	rowCount: 1,
-	colCount: 2,
-	scale: 3,
-	canvasX: 50,
-	canvasY: 50,
-};
-let f1 = 0;
-let f2 = 0;
-
-// frame = buildSprite(hiveWhaleData, 1);
-const interval = setInterval(() => {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	//frame = drawFire(ctx, frame);
-	f1 = buildSprite(whaleHurtData, f1);
-	f2 = buildSprite(whaleDeathData, f2);
-	//frame = drawExplosion(ctx, explosion, frame);
-}, 150);
+	// animate
+	function animate() {
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		game.update();
+		game.draw(ctx);
+		requestAnimationFrame(animate);
+	}
+	animate();
+});
