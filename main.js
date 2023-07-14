@@ -118,7 +118,7 @@ window.addEventListener('load', () => {
 		shootTop() {
 			if (this.game.ammo > 0) {
 				const x = this.x + this.width; // horizontal axis starting point
-				const y = this.y + this.height * 0.2; // vertical axis of starting point
+				const y = this.y + 5; // vertical axis of starting point
 				const projectile = new Projectile(this.game, x, y);
 				this.projectiles.push(projectile);
 
@@ -172,13 +172,56 @@ window.addEventListener('load', () => {
 		}
 
 		draw(context) {
+			context.save();
+
+			// game ammo indicator
 			for (let i = 0; i < this.game.ammo; i++) {
 				context.fillStyle = 'red';
 				context.fillRect(20 + 5 * i, 50, 3, 20);
 			}
+
+			// game score
 			context.fillStyle = this.color;
 			context.font = `${this.fontSize}px ${this.fontFamily}`;
-			context.fillText(this.game.score, 20, 25);
+			context.fillText(`Score : ${this.game.score}`, 20, 40);
+
+			// game Timer
+			context.fillStyle = 'black';
+			context.font = `${this.fontSize - 5}px ${this.fontFamily}`;
+			context.fillText(
+				`Time : ${(this.game.gameTimer / 1000).toFixed(1)}`,
+				20,
+				100
+			);
+
+			// gameover message
+			if (this.game.gameOver) {
+				let message1, message2;
+				context.textAlign = 'center';
+
+				if (this.game.score > this.game.winningScore) {
+					context.fillStyle = 'green';
+					message1 = 'You win!';
+					message2 = 'Well done!';
+				} else {
+					context.fillStyle = 'red';
+					message1 = 'You lose!';
+					message2 = 'Try again next time!';
+				}
+
+				context.font = '50px' + this.fontFamily;
+				context.fillText(
+					message1,
+					this.game.width * 0.5,
+					this.game.height * 0.5
+				);
+				context.fillText(
+					message2,
+					this.game.width * 0.5,
+					this.game.height * 0.5 + 40
+				);
+			}
+			context.restore();
 		}
 	}
 
@@ -206,6 +249,9 @@ window.addEventListener('load', () => {
 			// game state
 			this.gameOver = false;
 			this.score = 0;
+			this.gameTimer = 0;
+			this.gameMaxTime = 1000 * 10;
+			this.winningScore = 40;
 		}
 
 		update(deltaTime) {
@@ -237,7 +283,9 @@ window.addEventListener('load', () => {
 				this.player.projectiles.forEach((projectile) => {
 					if (this.checkCollision(projectile, enemy)) {
 						enemy.lives--;
-						this.score += enemy.score;
+						// if game is not over only then update the score
+						if (!this.gameOver) this.score += enemy.score;
+
 						if (enemy.lives == 0) enemy.markForDeletion = true;
 						projectile.markForDeletion = true;
 					}
@@ -246,6 +294,14 @@ window.addEventListener('load', () => {
 
 			// filtering enemies
 			this.enemies = this.enemies.filter((enemy) => !enemy.markForDeletion);
+
+			// checking if time is over for the game
+			if (this.gameTimer > this.gameMaxTime) {
+				this.gameOver = true;
+			}
+
+			// updating game time
+			if (!this.gameOver) this.gameTimer += deltaTime;
 		}
 
 		draw(context) {
