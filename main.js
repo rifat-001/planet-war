@@ -1,3 +1,8 @@
+import Player from './module/Player.js';
+import InputHandler from './module/InputHandler.js';
+import Particle from './module/Particle.js';
+import Background from './module/Background.js';
+
 window.addEventListener('load', () => {
 	// canvas setup
 	const canvas = document.getElementById('canvas');
@@ -6,307 +11,6 @@ window.addEventListener('load', () => {
 
 	// get 2d context
 	const ctx = canvas.getContext('2d');
-
-	class InputHandler {
-		constructor(game) {
-			this.game = game;
-
-			window.addEventListener('keydown', (e) => {
-				if (
-					(e.key === 'w' || e.key == 'x' || e.key === 'a' || e.key === 'd') &&
-					this.game.keys.indexOf(e.key) === -1 // make sure the key is not present in the key array
-				) {
-					// console.log('down');
-					this.game.keys.push(e.key);
-				}
-
-				// enabling debug mode
-				if (e.key === 'q') this.game.debug = !this.game.debug;
-
-				// handling space !! Special Case !!
-				if (e.key === ' ') {
-					this.game.player.shootTop();
-					if (this.game.player.powerUp) {
-						this.game.player.shootBottom();
-					}
-				}
-
-				// logging key array
-				// console.log(this.game.keys);
-			});
-
-			window.addEventListener('keyup', (e) => {
-				// remove index of key that is just released
-				const index = this.game.keys.indexOf(e.key);
-				if (index > -1) {
-					// console.log('up');
-					this.game.keys.splice(index, 1);
-				}
-			});
-		}
-	}
-
-	class Projectile {
-		constructor(game, x, y) {
-			this.game = game;
-			this.x = x;
-			this.y = y;
-			this.width = 10;
-			this.height = 3;
-			this.speed = 5;
-			this.image = document.getElementById('projectile');
-			this.markForDeletion = false;
-		}
-
-		update() {
-			this.x += this.speed;
-			if (this.x > this.game.width * 0.8) this.markForDeletion = true;
-		}
-
-		draw(context) {
-			// debug
-			if (this.game.debug) {
-				context.fillStyle = 'red';
-				context.fillRect(this.x, this.y, this.width, this.height);
-			}
-			context.drawImage(this.image, this.x, this.y);
-		}
-	}
-
-	class Particle {
-		constructor(game, x, y) {
-			this.game = game;
-			this.x = x;
-			this.y = y;
-			this.image = document.getElementById('gears');
-
-			this.width = 50;
-			this.height = 50;
-
-			// sprite Data
-			this.frameX = Math.floor(Math.random() * 3);
-			this.frameY = Math.floor(Math.random() * 3);
-
-			this.sizeModifier = Math.random() * 0.5 + 0.5;
-			this.size = this.width * this.sizeModifier;
-
-			// physics
-			this.velocityX = Math.random() * 6 - 3;
-			this.velocityY = Math.random() * -15;
-			this.gravity = 0.5;
-			this.angle = 0;
-			this.va = Math.random() * 0.2 - 0.1;
-			this.bounced = 0;
-			this.maxBounceCount = Math.floor(Math.random() * 1 + 2);
-			this.bounceBoundary = this.game.height * (Math.random() * 0.1 + 0.7);
-		}
-
-		update() {
-			this.angle += this.va;
-
-			// updating velocity
-			this.velocityY += this.gravity;
-
-			// simulate bouncing
-			if (this.y >= this.bounceBoundary && this.bounced < this.maxBounceCount) {
-				this.bounced++;
-				this.velocityY = -(this.velocityY * 0.7);
-			}
-
-			// updating position
-			this.x -= this.velocityX + this.game.gameSpeed;
-			this.y += this.velocityY;
-
-			if (this.y > this.game.height || this.x < -this.size)
-				this.markForDeletion = true;
-		}
-
-		draw(context) {
-			// rotating canvas
-			context.save();
-			context.translate(this.x, this.y);
-			context.rotate(this.angle);
-			if (this.game.debug) {
-				// because we translate the canvas to this.x and this.y
-				// now (0, 0) means (this.x, this.y)
-				context.strokeRect(0, 0, this.size, this.size);
-				context.font = '20px Helvetica';
-				context.fillText(`${this.frameX}, ${this.frameY}`, this.x, this.y);
-			}
-
-			context.drawImage(
-				this.image,
-				this.width * this.frameX,
-				this.height * this.frameY,
-				this.width,
-				this.height,
-				this.size * -0.5,
-				this.size * -0.5,
-				this.size,
-				this.size
-			);
-			context.restore();
-		}
-	}
-
-	class Player {
-		constructor(game) {
-			this.game = game;
-			this.width = 120;
-			this.height = 190;
-			this.x = 20;
-			this.y = 100;
-			this.speedY = 0;
-			this.speedX = 2;
-			this.speed = 4;
-
-			this.scale = 1; // it will scale the cropped image from the sprite sheet
-
-			// player sprite image
-			this.image = document.getElementById('player');
-
-			// sprite navigator
-			this.frameX = 0;
-			this.frameY = 0;
-			this.maxFrame = 37;
-
-			this.projectiles = [];
-
-			// powers
-			this.powerUp = false;
-			this.powerUpTimer = 0;
-			this.powerUpLimit = 5000;
-		}
-
-		update(deltaTime) {
-			// controlling verticle movement
-			if (this.game.keys.includes('w')) this.speedY = -this.speed;
-			else if (this.game.keys.includes('x')) this.speedY = this.speed;
-			else this.speedY = 0;
-
-			// controlling horizontal movement
-			if (this.game.keys.includes('a')) this.speedX = -this.speed;
-			else if (this.game.keys.includes('d')) this.speedX = this.speed;
-			else this.speedX = 0;
-
-			// updating position
-			this.y = Math.min(
-				Math.max(0, this.speedY + this.y),
-				this.game.height - this.height * 0.25
-			);
-
-			this.x += this.speedX;
-
-			// updating projectile position
-			this.projectiles.forEach((projectile) => {
-				projectile.update();
-			});
-
-			// remove projectile which should be deleted
-			this.projectiles = this.projectiles.filter(
-				(projectile) => !projectile.markForDeletion
-			);
-
-			// updating sprite animation
-			this.frameX = (this.frameX + 1) % this.maxFrame;
-
-			// updating power up timer
-			if (this.powerUp) {
-				if (this.powerUpTimer > this.powerUpLimit) {
-					this.powerUp = false;
-					this.powerUpTimer = 0;
-					this.frameY = 0;
-				} else {
-					this.powerUpTimer += deltaTime;
-					this.frameY = 1;
-					if (this.game.ammo < this.game.maxAmmo) {
-						this.game.ammo += 0.1;
-					}
-				}
-			}
-		}
-
-		increasePower() {
-			this.powerUp = true;
-			this.powerUpTimer = 0;
-		}
-
-		draw(context) {
-			// debug mode
-			if (this.game.debug) {
-				context.strokeRect(this.x, this.y, this.width, this.height);
-			}
-
-			// power up circle
-			if (this.powerUp) {
-				context.save();
-				context.beginPath();
-				context.filter = 'blur(12px)';
-				context.globalAlpha = 0.9;
-				ctx.arc(
-					this.x + this.width / 2,
-					this.y + this.height / 2,
-					this.width * 0.7,
-					this.height,
-					0,
-					2 * Math.PI
-				);
-				ctx.fillStyle = '#ffffff';
-
-				ctx.fill();
-				ctx.restore();
-			}
-
-			/* drawing player sprite image
-			 * drawImage(imageElement, imageX, imageY, imgeWidth, imageHeight, canvasX, canvasY, canvasWidth, canvasHeight)
-			 */
-			context.drawImage(
-				this.image,
-				this.width * this.frameX,
-				this.height * this.frameY,
-				this.width,
-				this.height,
-				this.x,
-				this.y,
-				this.width * this.scale,
-				this.height * this.scale
-			);
-
-			// drawing projectile
-			this.projectiles.forEach((projectile) => projectile.draw(context));
-		}
-
-		shootTop() {
-			if (this.game.ammo > 0) {
-				// horizontal axis starting point
-				// it will be started from the 80% of the width
-				const x = this.x + this.width * this.scale * 0.8;
-
-				// vertical axis of starting point
-				// it will be started fromt the 18% of the height
-				const y = this.y + this.height * this.scale * 0.18;
-				const projectile = new Projectile(this.game, x, y);
-				this.projectiles.push(projectile);
-
-				this.game.ammo--;
-			}
-		}
-
-		shootBottom() {
-			if (this.game.ammo > 0) {
-				// horizontal axis starting point
-				// it will be started from the 80% of the width
-				const x = this.x + this.width * this.scale * 0.8;
-
-				// vertical axis of starting point
-				// it will be started fromt the 18% of the height
-				const y = this.y + this.height * this.scale * 0.9;
-
-				const projectile = new Projectile(this.game, x, y);
-				this.projectiles.push(projectile);
-			}
-		}
-	}
 
 	class Enemy {
 		constructor(game) {
@@ -414,52 +118,116 @@ window.addEventListener('load', () => {
 		}
 	}
 
-	class Layer {
-		constructor(game, image, speedModifier) {
-			this.game = game;
-			this.image = image;
-			this.speedModifier = speedModifier;
-			this.width = 1768;
-			this.height = 500;
-			this.x = 0;
-			this.y = 0;
-		}
+	class Hive extends Enemy {
+		constructor(game) {
+			super(game);
+			this.width = 400;
+			this.height = 227;
+			this.y = Math.random() * (this.game.height * 0.9 - this.height);
 
-		update() {
-			if (this.x <= -this.width) this.x = 0;
-			this.x -= this.game.gameSpeed * this.speedModifier;
-		}
+			this.image = document.getElementById('hive-whale');
 
-		draw(context) {
-			context.drawImage(this.image, this.x, this.y);
-			context.drawImage(this.image, this.x + this.width, this.y);
+			// sprite data
+			this.maxFrame = 39;
+			this.frameX = 0;
+			this.frameY = 0;
+			this.scale = Math.random() * 0.5 + 0.8;
+
+			this.lives = 15;
+			this.score = this.lives;
+			this.type = 'hive';
+
+			// override
+			this.speedX = Math.random() * -1.2 - 0.2;
 		}
 	}
 
-	class Background {
-		constructor(game) {
+	class Drone extends Enemy {
+		constructor(game, x, y) {
+			super(game);
+			this.width = 115;
+			this.height = 95;
+
+			this.x = x;
+			this.y = y;
+
+			this.image = document.getElementById('drone');
+
+			// sprite data
+			this.maxFrame = 39;
+			this.frameX = 0;
+			this.frameY = Math.floor(Math.random() * 2);
+			this.scale = Math.random() * 0.5 + 0.8;
+
+			this.lives = 2;
+			this.score = this.lives;
+			this.type = 'drone';
+
+			// override
+			this.speedX = Math.random() * -4.2 - 0.5;
+		}
+	}
+
+	class Effect {
+		constructor(game, x, y) {
 			this.game = game;
-			this.image1 = document.getElementById('layer-1');
-			this.image2 = document.getElementById('layer-2');
-			this.image3 = document.getElementById('layer-3');
-			this.image4 = document.getElementById('layer-4');
+			this.x = x;
+			this.y = y;
+			this.markForDeletion = false;
+			// sprite data
+			this.image;
+			this.frameX;
+			this.frameY;
+			this.maxFrame;
 
-			this.layer1 = new Layer(this.game, this.image1, 0.2);
-			this.layer2 = new Layer(this.game, this.image2, 0.4);
-			this.layer3 = new Layer(this.game, this.image3, 1);
-			this.layer4 = new Layer(this.game, this.image4, 1.3);
+			this.width;
+			this.height;
+			this.scale;
 
-			this.layers = [this.layer1, this.layer2, this.layer3];
+			this.fps = 60;
+			this.timer = 0;
+			this.interval = 1000 / this.fps;
 		}
 
-		update() {
-			this.layers.forEach((layer) => layer.update());
+		update(deltaTime) {
+			// move the smoke with the game speed
+			this.y -= this.game.gameSpeed;
+
+			if (this.timer >= this.interval) {
+				this.timer = 0;
+				this.frameX = this.frameX + 1;
+			} else this.timer += deltaTime;
+			if (this.frameX === this.maxFrame) this.markForDeletion = true;
 		}
 
 		draw(context) {
-			this.layers.forEach((layer) => {
-				layer.draw(context);
-			});
+			context.drawImage(
+				this.image,
+				this.width * this.frameX,
+				this.y * this.frameY,
+				this.width,
+				this.height,
+				this.x,
+				this.y,
+				this.width * this.scale,
+				this.height * this.scale
+			);
+		}
+	}
+
+	class Smoke extends Effect {
+		constructor(game, x, y) {
+			super(game, x, y);
+			this.image = document.getElementById('smoke-explosion');
+
+			this.width = 200;
+			this.height = 200;
+
+			// sprite data
+			this.frameX = 0;
+			this.frameY = 0;
+			this.maxFrame = 8;
+			this.scale = 1;
 		}
 	}
 
@@ -558,6 +326,9 @@ window.addEventListener('load', () => {
 
 			// particles
 			this.particles = [];
+
+			// effect
+			this.effects = [];
 		}
 
 		update(deltaTime) {
@@ -587,9 +358,11 @@ window.addEventListener('load', () => {
 				this.enemyTimer = 0;
 			} else this.enemyTimer += deltaTime;
 
-			// console.log(this.enemies);
+			// updating effect array
+			this.effects.forEach((effect) => effect.update(deltaTime));
+			this.effects = this.effects.filter((effect) => !effect.markForDeletion);
 
-			// updating enemies
+			// updating enemies and collsion check
 			this.enemies.forEach((enemy) => {
 				enemy.update();
 
@@ -614,7 +387,7 @@ window.addEventListener('load', () => {
 						if (enemy.lives == 0) enemy.markForDeletion = true;
 						projectile.markForDeletion = true;
 
-						// animating gears
+						// animating gears and spawning creatures if necessary
 						if (enemy.markForDeletion) {
 							// if enemy is destroyed
 							// 10 particles will be spreaded from the enemy
@@ -627,9 +400,27 @@ window.addEventListener('load', () => {
 									)
 								);
 							}
+
+							// if enemy type is hive then spawn 3-5 drone at the place of hive
+							if (enemy.type === 'hive') {
+								const droneCount = Math.floor(Math.random() * 3 + 1);
+								for (let i = 0; i < droneCount; i++) {
+									this.enemies.push(
+										new Drone(
+											this,
+											enemy.x + enemy.width * Math.random(),
+											enemy.y + enemy.height * 0.5
+										)
+									);
+								}
+							}
+
+							// draw smoke at the place of death
+							this.effects.push(new Smoke(this, enemy.x, enemy.y));
 						} else {
 							// simple enemy and projectile collsion
-							console.log('collide', Math.random());
+
+							// drop one gears from the enemy
 							this.particles.push(
 								new Particle(
 									this,
@@ -665,12 +456,15 @@ window.addEventListener('load', () => {
 			// drawing enemies
 			this.enemies.forEach((enemy) => enemy.draw(context));
 
+			// drawing effects at the top of enemies and player
+			this.effects.forEach((effect) => effect.draw(context));
+
 			// draw the front layer
 			this.background.layer4.draw(context);
 		}
 
 		addEnemy() {
-			const enemyTypes = [Angler1, Angler2, Lucky];
+			const enemyTypes = [Angler1, Angler2, Lucky, Hive];
 
 			// random index between 0 and enemyTypes array
 			const index = Math.floor(Math.random() * enemyTypes.length);
@@ -698,8 +492,8 @@ window.addEventListener('load', () => {
 		lastTime = timeStamp;
 		// console.log(deltaTime);
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		game.update(deltaTime);
 		game.draw(ctx);
+		game.update(deltaTime);
 		requestAnimationFrame(animate);
 	}
 	animate(0);
